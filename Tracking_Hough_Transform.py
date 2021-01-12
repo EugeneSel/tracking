@@ -54,7 +54,7 @@ roi = frame[c:c + w, r:r + h]
 # conversion to Hue-Saturation-Value space
 # 0 < H < 180; 0 < S < 255; 0 < V < 255
 hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-orientation, norm, mask = orientation_mask(hsv_roi, threshold=3)
+orientation, norm, mask = orientation_mask(hsv_roi, threshold=5)
 # generate R-table
 r_table = {};
 omega = (int(r + h/2), int(c + w/2))
@@ -64,27 +64,29 @@ for i in range(len(mask)):
         if mask[i,j] != 0:
             idx = get_index(mask[i][j])
             if idx in r_table:
-                r_table[idx] += [(j - omega[0], i - omega[1])]
+                r_table[idx] += [(omega[0] - j - r, omega[1] - i - c)]
             else:
-                r_table[idx] = [(j - omega[0], i - omega[1])]
+                r_table[idx] = [(omega[0] - j - r, omega[1] - i - c)]
 
 #print(mask)
-#print(len(r_table))
+print(len(r_table))
 #print(sum([len(e) for e in r_table.values()]))
 print(hsv_roi.shape)
 print(mask.shape)
 print((r,c,h,w))
 print(omega)
-print("sssss")
+
+# Setup the termination criteria: either 10 iterations,
+# or move by less than 1 pixel
+term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
+
 cpt = 1
 while True:
     ret, frame = cap.read()
     if ret:
         hsv =  cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        orientation, norm, mask = orientation_mask(hsv, threshold=3)
+        orientation, norm, mask = orientation_mask(hsv, threshold=5)
         t_hough = np.zeros_like(mask)
-        print(hsv.shape)
-        print(mask.shape)
         for i in range(mask.shape[0]):
             for j in range(mask.shape[1]):
                 if mask[i,j] != 0:
@@ -94,14 +96,18 @@ while True:
                         if j + v[0] >= 0 and j + v[0] < t_hough.shape[1] and i + v[1] >= 0 and i + v[1] < t_hough.shape[0]:
                             t_hough[i + v[1]][j + v[0]] += 1
 
-        print(t_hough)
-        center_y, center_x = np.unravel_index(np.argmax(t_hough), t_hough.shape)
-        
+        #center_y, center_x = np.unravel_index(np.argmax(t_hough), t_hough.shape)
+        #r, c = int(max(center_x - h/2, 0)), int(max(center_y - w/2, 0))
+
+        ret, track_window = cv2.meanShift(t_hough, track_window, term_crit)
+        r, c, h, w = track_window
+
         # Draw a blue rectangle on the current image
-        r, c = int(max(center_x - h/2, 0)), int(max(center_y - w/2, 0))
-        print("values", center_x, center_y, r, c, h, w)
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
         cv2.imshow('Sequence', frame_tracked)
+        cv2.imshow('Mask', mask)
+        cv2.imshow('orientation', orientation)
+        cv2.imshow('Hough Transform', t_hough)
 
         k = cv2.waitKey(60) & 0xff
         if k == 27:
