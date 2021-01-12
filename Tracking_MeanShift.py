@@ -49,14 +49,14 @@ track_window = (r, c, h, w)
 # set up the ROI for tracking
 roi = frame[c:c + w, r:r + h]
 # conversion to Hue-Saturation-Value space
-# 0 < H < 180 ; 0 < S < 255 ; 0 < V < 255
+# 0 < H < 180; 0 < S < 255; 0 < V < 255
 hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 # computation mask of the histogram:
 # Pixels with S<30, V<20 or V>235 are ignored 
 mask = cv2.inRange(hsv_roi, np.array((0., 30., 20.)), np.array((180., 255., 235.)))
 # Marginal histogram of the Hue component
 roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0, 180])
-# Histogram values are normalised to [0,255]
+# Histogram values are normalised to [0, 255]
 cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
 
 # Setup the termination criteria: either 10 iterations,
@@ -68,8 +68,8 @@ while True:
     ret, frame = cap.read()
     if ret:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-	# Backproject the model histogram roi_hist onto the 
-	# current image hsv, i.e. dst(x,y) = roi_hist(hsv(0,x,y))
+        # Backproject the model histogram roi_hist onto the 
+        # current image hsv, i.e. dst(x,y) = roi_hist(hsv(0,x,y))
         dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
         # apply meanshift to dst to get the new location
@@ -79,6 +79,7 @@ while True:
         r, c, h, w = track_window
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
         cv2.imshow('Sequence', frame_tracked)
+        cv2.imshow('Retroprojection', dst)
 
         k = cv2.waitKey(60) & 0xff
         if k == 27:
