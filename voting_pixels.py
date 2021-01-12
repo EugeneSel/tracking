@@ -3,8 +3,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from PIL import Image
 from scipy import ndimage, misc
-from skimage import color
-from skimage import io
 from IPython import display
 
 
@@ -26,17 +24,17 @@ def orientation_mask(image_filename, threshold=.2, norm_enhancer=10.):
     # magnitude = cv.magnitude(gy, gx)
     mask = np.where(norm > threshold, orientation, 0)
 
-    while True:
-        cv.imshow("Original", img)
-        cv.imshow("gx", gx)
-        cv.imshow("gy", gy)
-        cv.imshow("orientation", orientation)
-        cv.imshow("norm", norm)
-        cv.imshow("mask", mask)
+    # while True:
+    #     cv.imshow("Original", img)
+    #     cv.imshow("gx", gx)
+    #     cv.imshow("gy", gy)
+    #     cv.imshow("orientation", orientation)
+    #     cv.imshow("norm", norm)
+    #     cv.imshow("mask", mask)
 
-        ch = cv.waitKey(1)
-        if ch == 27 or ch == ord('q') or ch == ord('Q'):
-            break
+    #     ch = cv.waitKey(1)
+    #     if ch == 27 or ch == ord('q') or ch == ord('Q'):
+    #         break
     plt.imshow(orientation, cmap = 'gray')
     plt.show()
     # print(img.shape)
@@ -72,23 +70,10 @@ def orientation_mask(image_filename, threshold=.2, norm_enhancer=10.):
 
     # _, mask = cv.threshold(magnitude, threshold, 255, cv.THRESH_BINARY)
 
-    return orientation, magnitude, mask
+    return orientation, norm, mask
 
 
 if __name__ == "__main__":
     IMG_TEST = "q3_test_image.jpg"
 
-    orientation, magnitude, mask = orientation_mask(IMG_TEST)
-
-    # while True:
-    #     cv.imshow("orientation", orientation)
-    #     cv.imshow("magnitude", magnitude)
-    #     cv.imshow("mask", mask)
-
-    #     ch = cv.waitKey(1)
-    #     if ch == 27 or ch == ord('q') or ch == ord('Q'):
-    #         break
-
-    # cv.destroyAllWindows()
-
-
+    orientation, norm, mask = orientation_mask(IMG_TEST)
