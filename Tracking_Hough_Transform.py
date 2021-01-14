@@ -20,10 +20,14 @@ def define_ROI(event, x, y, flags, param):
 		c = min(c, c2)  
 		roi_defined = True
 
-def get_index(value, interval_size=.03):
-    return value // interval_size
+def get_index(value, interval_size=np.pi):
+    index = (value + np.pi) // interval_size
 
-cap = cv2.VideoCapture('Sequences/Antoine_Mug.mp4')
+    # Consider the board effect:
+    return index if value < np.pi else index - 1
+
+
+cap = cv2.VideoCapture('Sequences/VOT-Car.mp4')
 
 # take first frame of the video
 ret, frame = cap.read()
@@ -54,15 +58,19 @@ roi = frame[c:c + w, r:r + h]
 # conversion to Hue-Saturation-Value space
 # 0 < H < 180; 0 < S < 255; 0 < V < 255
 hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-orientation, norm, mask = orientation_mask(hsv_roi, norm_quantile=.7)
-# generate R-table
+orientation, norm, mask = orientation_mask(hsv_roi, norm_quantile=.6)
+# generate R-table:
 r_table = {}
 omega = (r + h // 2, c + w // 2)
+
+# Define number of orientations:
+n_orientations = 180
+interval_size = 2 * np.pi / n_orientations
 
 for i in range(mask.shape[0]):
     for j in range(mask.shape[1]):
         if mask[i, j]:
-            idx = str(get_index(orientation[i, j]))
+            idx = str(get_index(orientation[i, j], interval_size))
             if idx in r_table:
                 r_table[idx] += [(omega[0] - j - r, omega[1] - i - c)]
             else:
@@ -79,10 +87,11 @@ while True:
         hsv =  cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         orientation, norm, mask = orientation_mask(hsv, norm_quantile=.9)
         t_hough = np.zeros_like(mask)
+
         for i in range(mask.shape[0]):
             for j in range(mask.shape[1]):
                 if mask[i, j]:
-                    idx = str(get_index(orientation[i, j]))
+                    idx = str(get_index(orientation[i, j], interval_size))
                     if idx in r_table:
                         for v in r_table[idx]:
                             if j + v[0] >= 0 and j + v[0] < t_hough.shape[1] and i + v[1] >= 0 and i + v[1] < t_hough.shape[0]:
@@ -102,7 +111,6 @@ while True:
         cv2.imshow('Mask', mask.astype(float))
         cv2.imshow('Orientation', orientation)
         cv2.imshow('Hough Transform', t_hough / t_hough.max().max())
-        # print(np.unique(t_hough))
 
         k = cv2.waitKey(60) & 0xff
         if k == 27:
