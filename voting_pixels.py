@@ -1,10 +1,11 @@
 import numpy as np
 
-def orientation_mask(frame, threshold=.2, norm_enhancer=10.):
+def orientation_mask(frame, norm_quantile=.5):
     # reads the image:
     # img = cv.imread(image_filename, 0)
     img = frame[:, :, 2]
     gx, gy = np.gradient(img)
+    # print(gx, gy)
     # sobel derivatives
     # gy = cv.Sobel(img, cv.CV_64F, 1, 0)
     # # gx = cv.Sobel(img, cv.CV_64F, 0, 1)
@@ -13,10 +14,12 @@ def orientation_mask(frame, threshold=.2, norm_enhancer=10.):
 
     orientation = np.arctan2(gy, gx)
     # orientation = cv.phase(gy, gx)
-    norm = np.hypot(gy, gx) / norm_enhancer
+    norm = np.hypot(gy, gx)
+    threshold = np.quantile(norm, norm_quantile)
 
     # magnitude = cv.magnitude(gy, gx)
-    mask = np.where(norm > threshold, orientation + 2*np.pi, 0)
+    mask = np.where(norm > threshold, 1, 0)
+    # print(mask)
     # plt.subplot(2,2,1)
     # plt.imshow(orientation, cmap = 'gray')
     # plt.subplot(2,2,2)
