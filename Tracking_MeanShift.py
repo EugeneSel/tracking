@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from voting_pixels import orientation_mask
 
 roi_defined = False
  
@@ -71,7 +72,8 @@ while True:
         # Backproject the model histogram roi_hist onto the 
         # current image hsv, i.e. dst(x,y) = roi_hist(hsv(0,x,y))
         dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
-
+        orientation, norm, mask = orientation_mask(hsv, norm_quantile=.5)
+        dst = np.where(mask, dst, 0)
         # apply meanshift to dst to get the new location
         ret, track_window = cv2.meanShift(dst, track_window, term_crit)
 
@@ -79,7 +81,7 @@ while True:
         r, c, h, w = track_window
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
         cv2.imshow('Sequence', frame_tracked)
-        # cv2.imshow('Retroprojection', dst)
+        cv2.imshow('Retroprojection', dst)
 
         k = cv2.waitKey(60) & 0xff
         if k == 27:
