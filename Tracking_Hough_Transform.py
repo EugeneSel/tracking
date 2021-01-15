@@ -26,6 +26,10 @@ def get_index(value, interval_size=np.pi):
     # Consider the board effect:
     return index if value < np.pi else index - 1
 
+def bin2red(mask, orientation):
+    blue_green = np.where(mask, orientation, 0)
+    red = np.where(mask, orientation, 255)
+    return np.dstack((blue_green, blue_green, red))
 
 cap = cv2.VideoCapture('Sequences/Antoine_Mug.mp4')
 
@@ -107,8 +111,10 @@ while True:
 
         # Draw a blue rectangle on the current image
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
+        mask_red = bin2red(mask, orientation)
+
         cv2.imshow('Sequence', frame_tracked)
-        cv2.imshow('Mask', mask.astype(float))
+        cv2.imshow('Mask', mask_red)
         cv2.imshow('Orientation', orientation)
         cv2.imshow('Hough Transform', t_hough / t_hough.max().max())
 
