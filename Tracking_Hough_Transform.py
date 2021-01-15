@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from voting_pixels import orientation_mask
+from voting_pixels import orientation_mask, bin2red
 roi_defined = False
  
 def define_ROI(event, x, y, flags, param):
@@ -20,16 +20,13 @@ def define_ROI(event, x, y, flags, param):
 		c = min(c, c2)  
 		roi_defined = True
 
+
 def get_index(value, interval_size=np.pi):
     index = (value + np.pi) // interval_size
 
     # Consider the board effect:
     return index if value < np.pi else index - 1
 
-def bin2red(mask, orientation):
-    blue_green = np.where(mask, orientation, 0)
-    red = np.where(mask, orientation, 255)
-    return np.dstack((blue_green, blue_green, red))
 
 cap = cv2.VideoCapture('Sequences/Antoine_Mug.mp4')
 
@@ -115,6 +112,7 @@ while True:
 
         cv2.imshow('Sequence', frame_tracked)
         cv2.imshow('Mask', mask_red)
+        cv2.imshow('Norm', norm / norm.max().max())
         cv2.imshow('Orientation', orientation)
         cv2.imshow('Hough Transform', t_hough / t_hough.max().max())
 

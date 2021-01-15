@@ -1,6 +1,8 @@
+import cv2
 import numpy as np
 
-def orientation_mask(frame, norm_quantile=.5):
+
+def orientation_mask(frame, norm_quantile=.8):
     # Get the grey-scale part of the image:
     img = frame[:, :, 2]
 
@@ -16,18 +18,30 @@ def orientation_mask(frame, norm_quantile=.5):
     return orientation, norm, mask
 
 
-# if __name__ == "__main__":
-#     IMG_TEST = "q3_test_image.jpg"
+def bin2red(mask, orientation):
+    """Return the red mask"""
+    blue_green = np.where(mask, orientation, 0)
+    red = np.where(mask, orientation, 255)
+    return np.dstack((blue_green, blue_green, red))
 
-    #orientation, magnitude, mask = orientation_mask(IMG_TEST)
 
-    # while True:
-    #     cv.imshow("orientation", orientation)
-    #     cv.imshow("magnitude", magnitude)
-    #     cv.imshow("mask", mask)
+if __name__ == "__main__":
+    IMG_TEST = "images/q3_test_image.jpg"
 
-    #     ch = cv.waitKey(1)
-    #     if ch == 27 or ch == ord('q') or ch == ord('Q'):
-    #         break
+    img = cv2.imread(IMG_TEST)
+    hsv_img =  cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-    # cv.destroyAllWindows()
+    orientation, norm, mask = orientation_mask(hsv_img)
+    mask_red = bin2red(mask, orientation)
+
+    while True:
+        cv2.imshow('Original', img)
+        cv2.imshow('Mask', mask_red)
+        cv2.imshow('Norm', norm / norm.max().max())
+        cv2.imshow('Orientation', orientation)
+
+        ch = cv2.waitKey(1)
+        if ch == 27 or ch == ord('q') or ch == ord('Q'):
+            break
+
+    cv2.destroyAllWindows()
