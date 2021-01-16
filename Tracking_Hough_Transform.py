@@ -28,7 +28,7 @@ def get_index(value, interval_size=np.pi):
     return index if value < np.pi else index - 1
 
 
-cap = cv2.VideoCapture('Sequences/Antoine_Mug.mp4')
+cap = cv2.VideoCapture('Sequences/VOT-Ball.mp4')
 
 # take first frame of the video
 ret, frame = cap.read()
@@ -65,7 +65,7 @@ r_table = {}
 omega = (r + h // 2, c + w // 2)
 
 # Define number of orientations:
-n_orientations = 90
+n_orientations = 180
 interval_size = 2 * np.pi / n_orientations
 
 for i in range(mask.shape[0]):
@@ -99,12 +99,12 @@ while True:
                                 t_hough[i + v[1], j + v[0]] += 1.
 
         # Argmax:
-        center_y, center_x = np.unravel_index(np.argmax(t_hough), t_hough.shape)
-        r, c = max(center_x - h // 2, 0), max(center_y - w // 2, 0)
+        # center_y, center_x = np.unravel_index(np.argmax(t_hough), t_hough.shape)
+        # r, c = max(center_x - h // 2, 0), max(center_y - w // 2, 0)
 
         # Mean Shift:
-        # ret, track_window = cv2.meanShift(t_hough / t_hough.max().max(), track_window, term_crit)
-        # r, c, h, w = track_window
+        ret, track_window = cv2.meanShift(t_hough / t_hough.max().max(), track_window, term_crit)
+        r, c, h, w = track_window
 
         # Draw a blue rectangle on the current image
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
