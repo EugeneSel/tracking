@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 from voting_pixels import orientation_mask
 
+NORM_QUANTILE = .5
+THRESHOLD = 3.
+
 roi_defined = False
  
 def define_ROI(event, x, y, flags, param):
@@ -20,6 +23,22 @@ def define_ROI(event, x, y, flags, param):
 		r = min(r, r2)
 		c = min(c, c2)  
 		roi_defined = True
+
+def calc_hist(frame, track_window):
+	(r, c, h, w) = track_window
+	# set up the ROI for tracking
+	roi = frame[c:c + w, r:r + h]
+	# conversion to Hue-Saturation-Value space
+	# 0 < H < 180; 0 < S < 255; 0 < V < 255
+	hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+	# computation mask of the histogram:
+	# Pixels with S<30, V<20 or V>235 are ignored 
+	mask = cv2.inRange(hsv_roi, np.array((0., 30., 20.)), np.array((180., 255., 235.)))
+	# Marginal histogram of the Hue component
+	roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0, 180])
+	# Histogram values are normalised to [0, 255]
+	cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
+	return roi_hist
 
 cap = cv2.VideoCapture('Sequences/VOT-Ball.mp4')
 
@@ -47,18 +66,7 @@ while True:
 		break
  
 track_window = (r, c, h, w)
-# set up the ROI for tracking
-roi = frame[c:c + w, r:r + h]
-# conversion to Hue-Saturation-Value space
-# 0 < H < 180; 0 < S < 255; 0 < V < 255
-hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-# computation mask of the histogram:
-# Pixels with S<30, V<20 or V>235 are ignored 
-mask = cv2.inRange(hsv_roi, np.array((0., 30., 20.)), np.array((180., 255., 235.)))
-# Marginal histogram of the Hue component
-roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0, 180])
-# Histogram values are normalised to [0, 255]
-cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
+roi_hist = calc_hist(frame, track_window)
 
 # Setup the termination criteria: either 10 iterations,
 # or move by less than 1 pixel
@@ -72,11 +80,15 @@ while True:
         # Backproject the model histogram roi_hist onto the 
         # current image hsv, i.e. dst(x,y) = roi_hist(hsv(0,x,y))
         dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
-        orientation, norm, mask = orientation_mask(hsv, norm_quantile=.5)
+        orientation, norm, mask = orientation_mask(hsv, norm_quantile=NORM_QUANTILE)
         dst = np.where(mask, dst, 0)
         # apply meanshift to dst to get the new location
         ret, track_window = cv2.meanShift(dst, track_window, term_crit)
-
+        
+        _roi_hist = calc_hist(frame, track_window)
+        if (np.abs(_roi_hist - roi_hist)).mean() < THRESHOLD:
+            roi_hist = _roi_hist
+        
         # Draw a blue rectangle on the current image
         r, c, h, w = track_window
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
