@@ -4,8 +4,8 @@ from voting_pixels import orientation_mask
 
 NORM_QUANTILE = .95
 THRESHOLD = 3.
-FILTER_DST = True
-UPDATE_HIST = True
+FILTER_DST = False
+UPDATE_HIST = False
 
 roi_defined = False
  
