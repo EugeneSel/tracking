@@ -2,8 +2,10 @@ import numpy as np
 import cv2
 from voting_pixels import orientation_mask
 
-NORM_QUANTILE = .5
+NORM_QUANTILE = .95
 THRESHOLD = 3.
+FILTER_DST = True
+UPDATE_HIST = True
 
 roi_defined = False
  
@@ -40,7 +42,7 @@ def calc_hist(frame, track_window):
 	cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
 	return roi_hist
 
-cap = cv2.VideoCapture('Sequences/VOT-Ball.mp4')
+cap = cv2.VideoCapture('Sequences/VOT-Sunshade.mp4')
 
 # take first frame of the video
 ret, frame = cap.read()
@@ -74,35 +76,37 @@ term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
 
 cpt = 1
 while True:
-    ret, frame = cap.read()
-    if ret:
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        # Backproject the model histogram roi_hist onto the 
-        # current image hsv, i.e. dst(x,y) = roi_hist(hsv(0,x,y))
-        dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
-        orientation, norm, mask = orientation_mask(hsv, norm_quantile=NORM_QUANTILE)
-        dst = np.where(mask, dst, 0)
-        # apply meanshift to dst to get the new location
-        ret, track_window = cv2.meanShift(dst, track_window, term_crit)
-        
-        _roi_hist = calc_hist(frame, track_window)
-        if (np.abs(_roi_hist - roi_hist)).mean() < THRESHOLD:
-            roi_hist = _roi_hist
-        
-        # Draw a blue rectangle on the current image
-        r, c, h, w = track_window
-        frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
-        cv2.imshow('Sequence', frame_tracked)
-        cv2.imshow('Retroprojection', dst)
+	ret, frame = cap.read()
+	if ret:
+		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+		# Backproject the model histogram roi_hist onto the 
+		# current image hsv, i.e. dst(x,y) = roi_hist(hsv(0,x,y))
+		dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
+		orientation, norm, mask = orientation_mask(hsv, norm_quantile=NORM_QUANTILE)
+		if FILTER_DST:
+			dst = np.where(mask, dst, 0)
+		# apply meanshift to dst to get the new location
+		ret, track_window = cv2.meanShift(dst, track_window, term_crit)
+		
+		if UPDATE_HIST:
+			_roi_hist = calc_hist(frame, track_window)
+			if (np.abs(_roi_hist - roi_hist)).mean() < THRESHOLD:
+				roi_hist = _roi_hist
+		
+		# Draw a blue rectangle on the current image
+		r, c, h, w = track_window
+		frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
+		cv2.imshow('Sequence', frame_tracked)
+		cv2.imshow('Retroprojection', dst)
 
-        k = cv2.waitKey(60) & 0xff
-        if k == 27:
-            break
-        elif k == ord('s'):
-            cv2.imwrite('Frame_%04d.png'%cpt, frame_tracked)
-        cpt += 1
-    else:
-        break
+		k = cv2.waitKey(60) & 0xff
+		if k == 27:
+			break
+		elif k == ord('s'):
+			cv2.imwrite('Frame_%04d.png'%cpt, frame_tracked)
+		cpt += 1
+	else:
+		break
 
 cv2.destroyAllWindows()
 cap.release()
