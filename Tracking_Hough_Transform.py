@@ -59,13 +59,13 @@ roi = frame[c:c + w, r:r + h]
 # conversion to Hue-Saturation-Value space
 # 0 < H < 180; 0 < S < 255; 0 < V < 255
 hsv_roi =  cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-orientation, norm, mask = orientation_mask(hsv_roi, norm_quantile=.6)
+orientation, norm, mask = orientation_mask(hsv_roi, norm_quantile=.8)
 # generate R-table:
 r_table = {}
 omega = (r + h // 2, c + w // 2)
 
 # Define number of orientations:
-n_orientations = 180
+n_orientations = 90
 interval_size = 2 * np.pi / n_orientations
 
 for i in range(mask.shape[0]):
@@ -85,7 +85,7 @@ cpt = 1
 while True:
     ret, frame = cap.read()
     if ret:
-        hsv =  cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         orientation, norm, mask = orientation_mask(hsv, norm_quantile=.9)
         t_hough = np.zeros_like(mask)
 
@@ -99,12 +99,12 @@ while True:
                                 t_hough[i + v[1], j + v[0]] += 1.
 
         # Argmax:
-        # center_y, center_x = np.unravel_index(np.argmax(t_hough), t_hough.shape)
-        # r, c = max(center_x - h // 2, 0), max(center_y - w // 2, 0)
+        center_y, center_x = np.unravel_index(np.argmax(t_hough), t_hough.shape)
+        r, c = max(center_x - h // 2, 0), max(center_y - w // 2, 0)
 
         # Mean Shift:
-        ret, track_window = cv2.meanShift(t_hough / t_hough.max().max(), track_window, term_crit)
-        r, c, h, w = track_window
+        # ret, track_window = cv2.meanShift(t_hough / t_hough.max().max(), track_window, term_crit)
+        # r, c, h, w = track_window
 
         # Draw a blue rectangle on the current image
         frame_tracked = cv2.rectangle(frame, (r, c), (r + h, c + w), (255, 0, 0), 2)
